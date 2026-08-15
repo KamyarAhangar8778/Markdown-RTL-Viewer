@@ -1,0 +1,6 @@
+{
+  "name": "RTL Markdown Studio",
+  "description": "Advanced RTL Markdown converter, editor, and previewer with dark modern cinematic UI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
