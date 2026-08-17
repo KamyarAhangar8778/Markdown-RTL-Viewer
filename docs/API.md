@@ -7,12 +7,12 @@
 - **Description:** Transforms standard Markdown into RTL-optimized Markdown.
 - **Parameters:**
   - `markdown`: Raw markdown string.
-  - `options`: Object specifying `wrapRtlContainer`, `persianizeDigits`, `preserveLtrCode`.
+  - `options`: Object specifying `wrapRtlContainer`, `persianizeDigits`.
 - **Returns:** String formatted for RTL rendering.
 
-### `toPersianDigits(input: string): string`
+### `persianize(input: string): string`
 - **Location:** `utils/persianizer.ts`
-- **Description:** Replaces Western digits (`0-9`) with Persian digits (`۰-۹`) while skipping code blocks.
+- **Description:** Replaces Western digits (`0-9`) and punctuation (`? , ;`) with Persian equivalents (`۰-۹` و `؟ ، ؛`) while skipping code blocks.
 
 ### `calculateDocumentStats(text: string): DocumentStats`
 - **Location:** `utils/statsCalculator.ts`

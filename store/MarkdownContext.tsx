@@ -20,8 +20,6 @@ export type { MarkdownContextType };
 const defaultOptions: RtlConversionOptions = {
   wrapRtlContainer: false,
   persianizeDigits: false,
-  preserveLtrCode: true,
-  autoAlignParagraphs: true,
 };
 
 const MarkdownContext = createContext<MarkdownContextType | undefined>(undefined);

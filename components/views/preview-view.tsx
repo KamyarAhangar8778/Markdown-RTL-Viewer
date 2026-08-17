@@ -8,6 +8,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { rehypeBidi } from '@/utils/rehypeBidi';
 import { useMarkdownContext } from '@/store/MarkdownContext';
 import { Eye } from 'lucide-react';
 
@@ -41,7 +42,7 @@ export const PreviewView: React.FC = () => {
       <div className={`flex-1 p-6 overflow-y-auto h-[480px] sm:h-[540px] transition-colors ${isDark ? 'bg-black' : 'bg-white/80'}`} dir="rtl">
         {rtlMarkdown.trim() ? (
           <div className="markdown-rtl-content text-right" dir="rtl">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeBidi]}>
               {rtlMarkdown}
             </ReactMarkdown>
           </div>

@@ -36,8 +36,6 @@ export interface Translations {
     download: string;
     persianDigitsActive: string;
     persianDigitsInactive: string;
-    codeIsolationActive: string;
-    codeIsolationInactive: string;
     splitView: string;
     editorView: string;
     previewView: string;

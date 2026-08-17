@@ -28,8 +28,6 @@ describe('Markdown Converter Integration', () => {
     const converted = convertToRtlMarkdown(sampleDoc, {
       wrapRtlContainer: true,
       persianizeDigits: true,
-      preserveLtrCode: true,
-      autoAlignParagraphs: true,
     });
     expect(converted).toContain('---:');
   });

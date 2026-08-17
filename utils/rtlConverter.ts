@@ -4,7 +4,7 @@
  */
 
 import { RtlConversionOptions } from '@/types/markdown';
-import { toPersianDigits } from './persianizer';
+import { persianize } from './persianizer';
 
 /**
  * Transforms standard Markdown text into an RTL-aligned Markdown structure.
@@ -21,9 +21,9 @@ export function convertToRtlMarkdown(
 
   let result = markdown;
 
-  // Step 1: Persianize digits if enabled
+  // Step 1: Persianize digits and punctuation if enabled
   if (options.persianizeDigits) {
-    result = toPersianDigits(result);
+    result = persianize(result);
   }
 
   // Step 2: Ensure table columns are right-aligned if they lack explicit alignment

@@ -10,7 +10,6 @@ import {
   Upload,
   ClipboardPaste,
   Download,
-  Code2,
   LayoutGrid,
   Edit3,
   Eye,
@@ -87,10 +86,6 @@ export function useStudioDockActions(): DockItemData[] {
     setOptions((prev) => ({ ...prev, persianizeDigits: !prev.persianizeDigits }));
   }, [setOptions]);
 
-  const togglePreserveCode = useCallback(() => {
-    setOptions((prev) => ({ ...prev, preserveLtrCode: !prev.preserveLtrCode }));
-  }, [setOptions]);
-
   const dockItems: DockItemData[] = useMemo(
     () => [
       { id: 'dock-upload', icon: <Upload className="w-5 h-5" />, label: t.dock.upload, onClick: () => setIsUploadOpen(true) },
@@ -103,13 +98,6 @@ export function useStudioDockActions(): DockItemData[] {
         onClick: togglePersianDigits,
         isActive: options.persianizeDigits,
       },
-      {
-        id: 'dock-code',
-        icon: <Code2 className="w-5 h-5" />,
-        label: options.preserveLtrCode ? t.dock.codeIsolationActive : t.dock.codeIsolationInactive,
-        onClick: togglePreserveCode,
-        isActive: options.preserveLtrCode,
-      },
       { id: 'dock-split', icon: <LayoutGrid className="w-5 h-5" />, label: t.dock.splitView, onClick: () => setViewMode('split'), isActive: viewMode === 'split' },
       { id: 'dock-editor', icon: <Edit3 className="w-5 h-5" />, label: t.dock.editorView, onClick: () => setViewMode('editor'), isActive: viewMode === 'editor' },
       { id: 'dock-preview', icon: <Eye className="w-5 h-5" />, label: t.dock.previewView, onClick: () => setViewMode('preview'), isActive: viewMode === 'preview' },
@@ -121,8 +109,6 @@ export function useStudioDockActions(): DockItemData[] {
       handleDownload,
       options.persianizeDigits,
       togglePersianDigits,
-      options.preserveLtrCode,
-      togglePreserveCode,
       setViewMode,
       viewMode,
       clearContent,

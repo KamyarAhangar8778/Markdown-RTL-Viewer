@@ -11,10 +11,6 @@ export interface RtlConversionOptions {
   wrapRtlContainer: boolean;
   /** Convert Western digits (0-9) to Persian digits (۰-۹) */
   persianizeDigits: boolean;
-  /** Preserve code blocks direction as LTR */
-  preserveLtrCode: boolean;
-  /** Add RTL paragraph direction attributes */
-  autoAlignParagraphs: boolean;
 }
 
 export interface DocumentStats {

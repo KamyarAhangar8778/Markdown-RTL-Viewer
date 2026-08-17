@@ -6,26 +6,37 @@
 const ENGLISH_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 
+/** Western → Persian punctuation map. Parentheses/quotes are intentionally
+ *  omitted: they are direction-sensitive and should stay LTR inside bidi runs. */
+const PERSIAN_PUNCTUATION: Record<string, string> = {
+  '?': '؟',
+  ',': '،',
+  ';': '؛',
+};
+
 /**
- * Converts Western digits (0-9) to Persian digits (۰-۹) while skipping code blocks.
- * @param input - The input string containing numbers.
- * @returns String with converted Persian digits.
+ * Converts Western digits (0-9) and common punctuation (?, , ;) to Persian
+ * format while skipping inline and fenced code blocks.
+ * @param input - The input string.
+ * @returns String with Persian digits and punctuation.
  */
-export function toPersianDigits(input: string): string {
+export function persianize(input: string): string {
   if (!input) return '';
-  
-  // Replace numbers while preserving code block sections
+
+  // Split while preserving code block sections so they stay untouched
   const parts = input.split(/(```[\s\S]*?```|`[^`]+`)/g);
-  
+
   return parts
     .map((part) => {
       if (part.startsWith('`')) {
         return part; // Skip inline or multi-line code blocks
       }
-      return part.replace(/[0-9]/g, (digit) => {
-        const index = ENGLISH_DIGITS.indexOf(digit);
-        return index !== -1 ? PERSIAN_DIGITS[index] : digit;
-      });
+      return part
+        .replace(/[0-9]/g, (digit) => {
+          const index = ENGLISH_DIGITS.indexOf(digit);
+          return index !== -1 ? PERSIAN_DIGITS[index] : digit;
+        })
+        .replace(/[?,;]/g, (p) => PERSIAN_PUNCTUATION[p] ?? p);
     })
     .join('');
 }
