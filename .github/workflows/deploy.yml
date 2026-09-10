@@ -43,6 +43,10 @@ jobs:
             exit 0
           fi
 
+      - name: Setup Bun
+        if: steps.detect-package-manager.outputs.manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -57,7 +61,7 @@ jobs:
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
 
       - name: Build Next.js static export
-        run: npm run build
+        run: ${{ steps.detect-package-manager.outputs.manager == 'bun' && 'bun run build' || 'npm run build' }}
         env:
           NEXT_EXPORT: 'true'
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
