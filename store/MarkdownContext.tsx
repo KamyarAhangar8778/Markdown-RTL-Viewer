@@ -5,22 +5,20 @@
  * @description React Context providing centralized state management for Markdown conversion and UI workflows.
  */
 
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
-import { RtlConversionOptions, MarkdownContextType } from '@/types/markdown';
+import React, { createContext, useContext, useState, useMemo, useCallback, useSyncExternalStore, useRef, useDeferredValue } from 'react';
+import { MarkdownContextType } from '@/types/markdown';
 import { ViewMode, Theme } from '@/types/ui';
 import { Language } from '@/types/i18n';
 import { TRANSLATIONS } from '@/constants/translations';
-import { convertToRtlMarkdown } from '@/utils/rtlConverter';
-import { calculateDocumentStats } from '@/utils/statsCalculator';
-import { SAMPLE_TEMPLATES } from '@/constants/sampleTemplates';
-import { useToastQueue } from '@/hooks/useToastQueue';
+import { processDocument } from '@/services/markdownEngine';
+import { useTheme } from 'next-themes';
+import { SAMPLE_RTL_MARKDOWN_FA, SAMPLE_RTL_MARKDOWN_EN } from '@/constants/sampleMarkdown';
+import { ToastState } from '@/components/ui/toast-notification';
+import { TOAST_DISMISS_DURATION_MS } from '@/constants/domain';
 
 export type { MarkdownContextType };
 
-const defaultOptions: RtlConversionOptions = {
-  wrapRtlContainer: false,
-  persianizeDigits: false,
-};
+const emptySubscribe = () => () => {};
 
 const MarkdownContext = createContext<MarkdownContextType | undefined>(undefined);
 
@@ -31,74 +29,107 @@ const MarkdownContext = createContext<MarkdownContextType | undefined>(undefined
  * @returns Context Provider element.
  */
 export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const { setTheme: setNextTheme, resolvedTheme } = useTheme();
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+
+  // During SSR and initial client hydration, default to 'dark' to guarantee
+  // that server-rendered HTML matches client properties identically without mismatch.
+  const theme: Theme = mounted && (resolvedTheme === 'light' || resolvedTheme === 'dark')
+    ? resolvedTheme
+    : 'dark';
   const [language, setLanguage] = useState<Language>('fa');
   const [rawMarkdown, setRawMarkdown] = useState<string>('');
-  const [options, setOptions] = useState<RtlConversionOptions>(defaultOptions);
   const [viewMode, setViewMode] = useState<ViewMode>('split');
   const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
   const [isPasteOpen, setIsPasteOpen] = useState<boolean>(false);
-  const { toasts, addToast, removeToast } = useToastQueue();
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+  const [isSyncScroll, setIsSyncScroll] = useState<boolean>(true);
+  const [editorElement, setEditorElement] = useState<HTMLTextAreaElement | null>(null);
+  const [previewElement, setPreviewElement] = useState<HTMLDivElement | null>(null);
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const closeToast = useCallback(() => {
+    setToast(null);
+  }, []);
+
+  const showToast = useCallback((
+    message: string,
+    type: 'success' | 'info' | 'error' = 'success',
+    action?: { label: string; onClick: () => void }
+  ) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({ message, type, id: Date.now(), action });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, TOAST_DISMISS_DURATION_MS);
+  }, []);
+
+  const toggleFocusMode = useCallback(() => {
+    setIsFocusMode((prev) => !prev);
+  }, []);
 
   const t = useMemo(() => TRANSLATIONS[language], [language]);
+
+  const toggleSyncScroll = useCallback(() => {
+    setIsSyncScroll((prev) => {
+      const next = !prev;
+      showToast(next ? t.editor.syncScrollEnabled : t.editor.syncScrollDisabled, 'info');
+      return next;
+    });
+  }, [showToast, t.editor.syncScrollEnabled, t.editor.syncScrollDisabled]);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setNextTheme?.(newTheme);
+  }, [setNextTheme]);
 
   const toggleTheme = useCallback(() => {
     const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    const isFa = language === 'fa';
-    addToast(
-      nextTheme === 'light'
-        ? isFa ? 'حالت روشن فعال شد' : 'Light theme activated'
-        : isFa ? 'حالت تاریک فعال شد' : 'Dark theme activated',
-      'info'
-    );
-  }, [theme, language, addToast]);
-
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      if (theme === 'light') {
-        root.classList.add('light');
-        root.classList.remove('dark');
-      } else {
-        root.classList.add('dark');
-        root.classList.remove('light');
-      }
-    }
-  }, [theme]);
+  }, [theme, setTheme]);
 
   const toggleLanguage = useCallback(() => {
     const nextLang: Language = language === 'fa' ? 'en' : 'fa';
     setLanguage(nextLang);
-    addToast(
-      nextLang === 'en' ? 'Language switched to English' : 'زبان به فارسی تغییر یافت',
-      'info'
-    );
-  }, [language, addToast]);
+    showToast(TRANSLATIONS[nextLang].toasts.langSwitched(nextLang === 'fa' ? 'فارسی' : 'English'), 'info');
+  }, [language, showToast]);
 
-  const rtlMarkdown = useMemo(() => {
-    return convertToRtlMarkdown(rawMarkdown, options);
-  }, [rawMarkdown, options]);
+  const deferredRawMarkdown = useDeferredValue(rawMarkdown);
+  const isProcessing = deferredRawMarkdown !== rawMarkdown;
 
-  const stats = useMemo(() => {
-    return calculateDocumentStats(rawMarkdown);
-  }, [rawMarkdown]);
+  const processedDoc = useMemo(() => {
+    return processDocument(deferredRawMarkdown);
+  }, [deferredRawMarkdown]);
 
-  const loadTemplate = useCallback(
-    (id: string) => {
-      const template = SAMPLE_TEMPLATES.find((t) => t.id === id);
-      if (template) {
-        setRawMarkdown(template.content);
-        addToast(t.toasts.templateLoaded(template.titleFa), 'success');
-      }
-    },
-    [addToast, t]
-  );
+  const { rtlMarkdown, stats } = processedDoc;
 
   const clearContent = useCallback(() => {
+    if (!rawMarkdown) {
+      showToast(t.toasts.editorCleared, 'info');
+      return;
+    }
+    const backup = rawMarkdown;
     setRawMarkdown('');
-    addToast(t.toasts.editorCleared, 'info');
-  }, [addToast, t]);
+    showToast(
+      t.toasts.editorCleared,
+      'info',
+      {
+        label: language === 'fa' ? 'بازیابی (Undo)' : 'Undo',
+        onClick: () => {
+          setRawMarkdown(backup);
+          showToast(language === 'fa' ? 'محتوا بازیابی شد' : 'Content restored', 'success');
+        },
+      }
+    );
+  }, [rawMarkdown, showToast, t.toasts.editorCleared, language]);
+
+  const loadSample = useCallback(() => {
+    const sample = language === 'fa' ? SAMPLE_RTL_MARKDOWN_FA : SAMPLE_RTL_MARKDOWN_EN;
+    setRawMarkdown(sample);
+    showToast(language === 'fa' ? 'نمونه مارک‌داون بارگذاری شد' : 'Sample Markdown loaded', 'success');
+  }, [language, showToast]);
 
   const contextValue: MarkdownContextType = useMemo(
     () => ({
@@ -112,39 +143,55 @@ export const MarkdownProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       rawMarkdown,
       setRawMarkdown,
       rtlMarkdown,
-      options,
-      setOptions,
       viewMode,
       setViewMode,
       stats,
+      isProcessing,
       isUploadOpen,
       setIsUploadOpen,
       isPasteOpen,
       setIsPasteOpen,
-      toasts,
-      addToast,
-      removeToast,
-      loadTemplate,
+      isFocusMode,
+      setIsFocusMode,
+      toggleFocusMode,
+      isSyncScroll,
+      setIsSyncScroll,
+      toggleSyncScroll,
+      editorElement,
+      setEditorElement,
+      previewElement,
+      setPreviewElement,
       clearContent,
+      loadSample,
+      toast,
+      showToast,
+      closeToast,
     }),
     [
       theme,
+      setTheme,
       toggleTheme,
       language,
       toggleLanguage,
       t,
       rawMarkdown,
       rtlMarkdown,
-      options,
       viewMode,
       stats,
+      isProcessing,
       isUploadOpen,
       isPasteOpen,
-      toasts,
-      addToast,
-      removeToast,
-      loadTemplate,
+      isFocusMode,
+      toggleFocusMode,
+      isSyncScroll,
+      toggleSyncScroll,
+      editorElement,
+      previewElement,
       clearContent,
+      loadSample,
+      toast,
+      showToast,
+      closeToast,
     ]
   );
 

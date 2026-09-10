@@ -3,13 +3,25 @@
 ## Status
 Accepted
 
+## Date
+2026-09-02
+
 ## Context
-In Persian technical documentation, code blocks frequently contain a mixture of Latin syntax/keywords and Persian comments/strings. Relying solely on a generic monospace font degrades Persian legibility, while using only a Persian font compromises Latin programming ligatures and monospace aesthetics. Furthermore, runtime CDN font fetching risks network latency and layout shifts.
+In Persian technical documentation and markdown workflows, code blocks and inline code snippets regularly contain a mixture of Latin syntax/keywords and Persian comments, string literals, and variable names.
+- Relying purely on a generic monospace font degrades Persian legibility, causing broken cursors and unreadable glyphs.
+- Relying exclusively on a Persian font compromises Latin programming ligatures, tabular digit alignment, and monospace alignment.
+- Relying on uncontrolled external CDN runtime font downloads risks Cumulative Layout Shift (CLS) and slow initial renders on restricted networks.
 
 ## Decision
-1. **Immutable Font Self-Hosting & Caching (`next/font/google`):** Integrated `Vazirmatn` and `JetBrains Mono` via Next.js App Router font optimization alongside a direct CDN fallback. Font binaries are self-hosted with immutable browser cache headers (`max-age=31536000`), eliminating runtime layout shifts.
-2. **Hybrid Fallback Hierarchy:** Configured code blocks with `font-family: var(--font-code-hybrid)`. The font stack prioritizes `JetBrains Mono` for Latin tokens, immediately followed by `Vazirmatn` for Persian comments and text strings before generic system monospace fallbacks (`JetBrains Mono` → `Vazirmatn` → `monospace`).
+1. **Immutable Next.js Font Optimization (`app/layout.tsx`):** We integrated `Vazirmatn` (Persian display and body) and `JetBrains Mono` (Latin monospace) using `@next/font/google` (`next/font/google`). Font binaries are downloaded at build time, self-hosted by the Next.js server, and served with immutable cache headers (`max-age=31536000`), completely eliminating runtime layout shifts (CLS = 0).
+2. **Hybrid Font Stack Architecture (`app/globals.css`):** Configured `--font-code-hybrid` using a prioritized fallback chain:
+   ```css
+   font-family: var(--font-jetbrains-mono), var(--font-vazirmatn), ui-monospace, SFMono-Regular, monospace;
+   ```
+   This ensures Latin characters and coding symbols are rendered with pristine `JetBrains Mono` glyphs and monospace metrics, while Persian characters immediately fall back to the optimized `Vazirmatn` glyph table without breaking line heights or character kerning.
 
 ## Consequences
-- Zero layout shift and instant cached font rendering across page refreshes.
-- High aesthetic quality for English code syntax with native readability for Persian strings and annotations.
+- **Positive:** Zero layout shift (CLS = 0) and instantaneous cached font rendering across subsequent visits.
+- **Positive:** High aesthetic fidelity for code syntax highlighting combined with native readability for Persian strings and annotations.
+- **Positive:** Works seamlessly in offline or air-gapped environments without external runtime CDN requests.
+

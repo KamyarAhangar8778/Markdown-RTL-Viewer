@@ -6,12 +6,11 @@
  */
 
 import React from 'react';
-import { motion, useMotionValue } from 'motion/react';
+import { m, useMotionValue } from 'motion/react';
 import { DockProps } from '@/types/dock';
 import { DockItem, DockIcon, DockLabel } from '@/components/ui/dock-item';
 import { useMarkdownContext } from '@/store/MarkdownContext';
-
-export { DockItem, DockIcon, DockLabel };
+import { SPRING_DOCK } from '@/lib/ease';
 
 /**
  * MagnificationDock Component providing fluid dock interaction with spring physics.
@@ -22,19 +21,19 @@ export { DockItem, DockIcon, DockLabel };
 export function MagnificationDock({
   items,
   className = '',
-  spring = { mass: 0.1, stiffness: 160, damping: 14 },
+  spring = SPRING_DOCK,
   magnification = 62,
   distance = 150,
   panelHeight = 58,
   baseItemSize = 42,
 }: DockProps) {
   const mouseX = useMotionValue(Infinity);
-  const { theme } = useMarkdownContext();
+  const { theme, language } = useMarkdownContext();
   const isDark = theme === 'dark';
 
   return (
     <div className="flex max-w-full items-end justify-center overflow-visible">
-      <motion.div
+      <m.div
         onMouseMove={(e) => {
           mouseX.set(e.clientX);
         }}
@@ -48,12 +47,13 @@ export function MagnificationDock({
         } ${className}`}
         style={{ height: panelHeight }}
         role="toolbar"
-        aria-label="Application dock"
+        aria-label={language === 'fa' ? 'نوار ابزار استودیو' : 'Studio toolbar'}
       >
-        {items.map((item, index) => (
+        {items.map((item) => (
           <DockItem
-            key={item.id || index}
+            key={item.id}
             id={item.id}
+            label={typeof item.label === 'string' ? item.label : undefined}
             isActive={item.isActive}
             onClick={item.onClick}
             className={item.className}
@@ -67,11 +67,9 @@ export function MagnificationDock({
             <DockLabel>{item.label}</DockLabel>
           </DockItem>
         ))}
-      </motion.div>
+      </m.div>
     </div>
   );
 }
-
-export default MagnificationDock;
 
 

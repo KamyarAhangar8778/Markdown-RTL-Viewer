@@ -7,10 +7,10 @@
 
 import { useEffect, useRef } from 'react';
 import { isDesktopOrLaptop } from '@/utils/deviceDetector';
-import type Lenis from 'lenis';
+import Lenis from 'lenis';
 
 /**
- * Activates inertia-based smooth scrolling on desktop and laptop viewports via dynamic Lenis loading.
+ * Activates inertia-based smooth scrolling on desktop and laptop viewports via Lenis.
  * Automatically cleans up animations and instances on unmount or when transitioning to mobile screens.
  */
 export function useDesktopSmoothScroll(): void {
@@ -23,7 +23,7 @@ export function useDesktopSmoothScroll(): void {
     /**
      * Initializes Lenis smooth scroll if environment is verified as desktop/laptop.
      */
-    async function initSmoothScroll() {
+    function initSmoothScroll() {
       if (!isDesktopOrLaptop()) {
         destroyLenis();
         return;
@@ -32,10 +32,9 @@ export function useDesktopSmoothScroll(): void {
       if (lenisRef.current) return;
 
       try {
-        const { default: LenisClass } = await import('lenis');
         if (isCancelled) return;
 
-        const lenis = new LenisClass({
+        const lenis = new Lenis({
           duration: 1.2,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
           orientation: 'vertical',
@@ -89,6 +88,10 @@ export function useDesktopSmoothScroll(): void {
 
     return () => {
       isCancelled = true;
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
       if (resizeTimeout) clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
       destroyLenis();

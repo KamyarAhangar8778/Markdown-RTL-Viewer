@@ -4,12 +4,15 @@
  */
 
 import { DocumentStats } from '@/types/markdown';
+import { DEFAULT_READING_SPEED_WPM } from '@/constants/domain';
 import { isPersianChar } from './persianizer';
 
 /**
- * Calculates comprehensive document statistics for a given text.
- * @param text - The raw text input.
- * @returns DocumentStats object.
+ * Calculates comprehensive document statistics for a given text using a high-performance,
+ * single-pass scan that eliminates intermediate string arrays and garbage-collection pressure.
+ *
+ * @param {string} text - The raw text input to analyze.
+ * @returns {DocumentStats} Comprehensive metrics and statistics for the document.
  */
 export function calculateDocumentStats(text: string): DocumentStats {
   if (!text) {
@@ -22,24 +25,55 @@ export function calculateDocumentStats(text: string): DocumentStats {
     };
   }
 
-  const lines = text.split('\n');
-  const lineCount = lines.length;
   const characterCount = text.length;
-
+  let lineCount = 1;
   let persianCharCount = 0;
-  for (let i = 0; i < text.length; i++) {
-    if (isPersianChar(text[i])) {
+  let wordCount = 0;
+  let inWord = false;
+
+  for (let i = 0; i < characterCount; i++) {
+    const code = text.charCodeAt(i);
+    const char = text[i];
+
+    if (code === 10) {
+      lineCount++;
+    }
+
+    if (isPersianChar(char)) {
       persianCharCount++;
+    }
+
+    // High-speed whitespace detection matching /\s+/
+    const isWhitespace =
+      code === 32 ||
+      code === 10 ||
+      code === 9 ||
+      code === 13 ||
+      code === 12 ||
+      code === 11 ||
+      code === 160 ||
+      (code >= 0x2000 && code <= 0x200a) ||
+      code === 0x2028 ||
+      code === 0x2029 ||
+      code === 0x3000;
+
+    if (isWhitespace) {
+      if (inWord) {
+        wordCount++;
+        inWord = false;
+      }
+    } else {
+      inWord = true;
     }
   }
 
-  // Count words separated by whitespace
-  const trimmed = text.trim();
-  const words = trimmed ? trimmed.split(/\s+/) : [];
-  const wordCount = words.length;
+  if (inWord) {
+    wordCount++;
+  }
 
   // Average reading speed: 180 words per minute for Persian/Arabic text
-  const estimatedReadTimeMinutes = Math.max(1, Math.ceil(wordCount / 180));
+  const estimatedReadTimeMinutes =
+    wordCount === 0 ? 0 : Math.max(1, Math.ceil(wordCount / DEFAULT_READING_SPEED_WPM));
 
   return {
     characterCount,

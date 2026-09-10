@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion, MotionValue, AnimatePresence } from 'motion/react';
+import { m, MotionValue, AnimatePresence } from 'motion/react';
 
 export interface DockLabelProps {
   className?: string;
@@ -41,7 +41,7 @@ export function DockLabel({
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 0 }}
           animate={{ opacity: 1, y: -10 }}
           exit={{ opacity: 0, y: 0 }}
@@ -51,7 +51,7 @@ export function DockLabel({
           style={{ x: '-50%' }}
         >
           {children}
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

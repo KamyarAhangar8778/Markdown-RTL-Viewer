@@ -3,6 +3,7 @@
  * @description Integration tests for full markdown document conversion workflow.
  */
 
+import { describe, test, expect } from 'bun:test';
 import { convertToRtlMarkdown } from '../../utils/rtlConverter';
 import { calculateDocumentStats } from '../../utils/statsCalculator';
 
@@ -25,10 +26,17 @@ describe('Markdown Converter Integration', () => {
   });
 
   test('aligns table columns to right for RTL', () => {
-    const converted = convertToRtlMarkdown(sampleDoc, {
-      wrapRtlContainer: true,
-      persianizeDigits: true,
-    });
+    const converted = convertToRtlMarkdown(sampleDoc);
     expect(converted).toContain('---:');
+  });
+
+  test('handles empty or whitespace-only documents with 0 read time', () => {
+    const emptyStats = calculateDocumentStats('');
+    expect(emptyStats.wordCount).toBe(0);
+    expect(emptyStats.estimatedReadTimeMinutes).toBe(0);
+
+    const whitespaceStats = calculateDocumentStats('   \n\n\t  ');
+    expect(whitespaceStats.wordCount).toBe(0);
+    expect(whitespaceStats.estimatedReadTimeMinutes).toBe(0);
   });
 });

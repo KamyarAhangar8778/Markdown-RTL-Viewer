@@ -1,6 +1,6 @@
 {
   "name": "RTL Markdown Studio",
-  "description": "Advanced RTL Markdown converter, editor, and previewer with dark modern cinematic UI.",
+  "description": "Markdown editor and previewer with RTL support for Persian and Arabic text.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -5,24 +5,25 @@
  * @description Custom hook encapsulating actions, handlers, and items configuration for the Studio Dock.
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   Upload,
-  ClipboardPaste,
+  Clipboard,
   Download,
-  LayoutGrid,
-  Edit3,
+  Columns2,
+  PenBox,
   Eye,
   Trash2,
 } from 'lucide-react';
-import { PersianDigitsIcon } from '@/components/ui/persian-digits-icon';
 import { useMarkdownContext } from '@/store/MarkdownContext';
 import { useClipboard } from '@/hooks/useClipboard';
 import { downloadFile } from '@/utils/fileHelpers';
+import { prepareExportBundle } from '@/services/markdownEngine';
 import { DockItemData } from '@/types/dock';
 
 /**
  * Custom hook providing action handlers and generated items for the Studio Dock.
+ * Stabilizes function references using refs to prevent unnecessary dock re-renders during text input.
  *
  * @returns An array of DockItemData configured with current state, handlers, and active indicators.
  */
@@ -30,17 +31,21 @@ export function useStudioDockActions(): DockItemData[] {
   const {
     setRawMarkdown,
     rtlMarkdown,
-    options,
-    setOptions,
     viewMode,
     setViewMode,
     setIsUploadOpen,
+    setIsPasteOpen,
     clearContent,
-    addToast,
+    showToast,
     t,
   } = useMarkdownContext();
 
   const { readFromClipboard } = useClipboard();
+  const rtlMarkdownRef = useRef(rtlMarkdown);
+
+  useEffect(() => {
+    rtlMarkdownRef.current = rtlMarkdown;
+  }, [rtlMarkdown]);
 
   const handlePaste = useCallback(async () => {
     try {
@@ -49,57 +54,36 @@ export function useStudioDockActions(): DockItemData[] {
         if (result.text.length > 0) {
           // Clear previous content completely and set new clipboard content directly
           setRawMarkdown(result.text);
-          addToast(t.toasts.pasteSuccess, 'success');
+          showToast(t.toasts.pasteSuccess, 'success');
         } else {
-          addToast(t.toasts.clipboardEmpty, 'info');
+          setIsPasteOpen(true);
         }
       } else {
-        const textarea = typeof document !== 'undefined'
-          ? (document.getElementById('editor-markdown-textarea') as HTMLTextAreaElement | null)
-          : null;
-        if (textarea) {
-          textarea.focus();
-        }
-        addToast(t.toasts.clipboardPermissionDenied, 'error');
+        setIsPasteOpen(true);
       }
     } catch {
-      const textarea = typeof document !== 'undefined'
-        ? (document.getElementById('editor-markdown-textarea') as HTMLTextAreaElement | null)
-        : null;
-      if (textarea) {
-        textarea.focus();
-      }
-      addToast(t.toasts.clipboardPermissionDenied, 'error');
+      setIsPasteOpen(true);
     }
-  }, [readFromClipboard, setRawMarkdown, addToast, t]);
+  }, [readFromClipboard, setRawMarkdown, setIsPasteOpen, showToast, t.toasts.pasteSuccess]);
 
   const handleDownload = useCallback(() => {
-    if (!rtlMarkdown.trim()) {
-      addToast(t.toasts.noTextToDownload, 'info');
+    const currentRtl = rtlMarkdownRef.current;
+    if (!currentRtl.trim()) {
+      showToast(t.toasts.noTextToDownload, 'error');
       return;
     }
-    downloadFile(rtlMarkdown, 'rtl-document.md');
-    addToast(t.toasts.downloadSuccess, 'success');
-  }, [rtlMarkdown, addToast, t]);
-
-  const togglePersianDigits = useCallback(() => {
-    setOptions((prev) => ({ ...prev, persianizeDigits: !prev.persianizeDigits }));
-  }, [setOptions]);
+    const bundle = prepareExportBundle(currentRtl);
+    downloadFile(bundle.content, bundle.filename, bundle.mimeType);
+    showToast(t.toasts.downloadSuccess, 'success');
+  }, [showToast, t.toasts.noTextToDownload, t.toasts.downloadSuccess]);
 
   const dockItems: DockItemData[] = useMemo(
     () => [
       { id: 'dock-upload', icon: <Upload className="w-5 h-5" />, label: t.dock.upload, onClick: () => setIsUploadOpen(true) },
-      { id: 'dock-paste', icon: <ClipboardPaste className="w-5 h-5" />, label: t.dock.paste, onClick: handlePaste },
+      { id: 'dock-paste', icon: <Clipboard className="w-5 h-5" />, label: t.dock.paste, onClick: handlePaste },
       { id: 'dock-download', icon: <Download className="w-5 h-5" />, label: t.dock.download, onClick: handleDownload },
-      {
-        id: 'dock-digits',
-        icon: <PersianDigitsIcon className="w-5 h-5" />,
-        label: options.persianizeDigits ? t.dock.persianDigitsActive : t.dock.persianDigitsInactive,
-        onClick: togglePersianDigits,
-        isActive: options.persianizeDigits,
-      },
-      { id: 'dock-split', icon: <LayoutGrid className="w-5 h-5" />, label: t.dock.splitView, onClick: () => setViewMode('split'), isActive: viewMode === 'split' },
-      { id: 'dock-editor', icon: <Edit3 className="w-5 h-5" />, label: t.dock.editorView, onClick: () => setViewMode('editor'), isActive: viewMode === 'editor' },
+      { id: 'dock-split', icon: <Columns2 className="w-5 h-5" />, label: t.dock.splitView, onClick: () => setViewMode('split'), isActive: viewMode === 'split' },
+      { id: 'dock-editor', icon: <PenBox className="w-5 h-5" />, label: t.dock.editorView, onClick: () => setViewMode('editor'), isActive: viewMode === 'editor' },
       { id: 'dock-preview', icon: <Eye className="w-5 h-5" />, label: t.dock.previewView, onClick: () => setViewMode('preview'), isActive: viewMode === 'preview' },
       { id: 'dock-clear', icon: <Trash2 className="w-5 h-5 text-red-400" />, label: t.dock.clear, onClick: clearContent },
     ],
@@ -107,8 +91,6 @@ export function useStudioDockActions(): DockItemData[] {
       setIsUploadOpen,
       handlePaste,
       handleDownload,
-      options.persianizeDigits,
-      togglePersianDigits,
       setViewMode,
       viewMode,
       clearContent,

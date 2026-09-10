@@ -24,6 +24,9 @@ export interface Translations {
     words: string;
     chars: string;
     placeholder: string;
+    syncScroll: string;
+    syncScrollEnabled: string;
+    syncScrollDisabled: string;
   };
   preview: {
     title: string;
@@ -34,12 +37,18 @@ export interface Translations {
     upload: string;
     paste: string;
     download: string;
-    persianDigitsActive: string;
-    persianDigitsInactive: string;
     splitView: string;
     editorView: string;
     previewView: string;
     clear: string;
+    focusMode: string;
+    exitFocusMode: string;
+  };
+  focusMode: {
+    title: string;
+    subtitle: string;
+    exitButton: string;
+    escHint: string;
   };
   uploadModal: {
     title: string;
@@ -57,7 +66,6 @@ export interface Translations {
     applyButton: string;
   };
   toasts: {
-    templateLoaded: (title: string) => string;
     editorCleared: string;
     pasteSuccess: string;
     clipboardEmpty: string;

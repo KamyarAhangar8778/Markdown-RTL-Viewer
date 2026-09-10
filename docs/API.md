@@ -2,18 +2,18 @@
 
 ## Utility Functions API
 
-### `convertToRtlMarkdown(markdown: string, options: RtlConversionOptions): string`
+### `convertToRtlMarkdown(markdown: string): string`
 - **Location:** `utils/rtlConverter.ts`
-- **Description:** Transforms standard Markdown into RTL-optimized Markdown.
+- **Description:** Transforms standard Markdown into RTL-optimized Markdown (aligns tables for RTL).
 - **Parameters:**
   - `markdown`: Raw markdown string.
-  - `options`: Object specifying `wrapRtlContainer`, `persianizeDigits`.
 - **Returns:** String formatted for RTL rendering.
 
-### `persianize(input: string): string`
+### `isPersianChar(char: string): boolean`
 - **Location:** `utils/persianizer.ts`
-- **Description:** Replaces Western digits (`0-9`) and punctuation (`? , ;`) with Persian equivalents (`۰-۹` و `؟ ، ؛`) while skipping code blocks.
+- **Description:** Checks if a given character is within the Persian/Arabic Unicode blocks.
 
 ### `calculateDocumentStats(text: string): DocumentStats`
 - **Location:** `utils/statsCalculator.ts`
 - **Description:** Computes word count, character count, line count, Persian char count, and reading time.
+

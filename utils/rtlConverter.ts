@@ -3,55 +3,53 @@
  * @description Core RTL Markdown processor. Transforms standard Markdown into RTL-optimized Markdown.
  */
 
-import { RtlConversionOptions } from '@/types/markdown';
-import { persianize } from './persianizer';
-
 /**
  * Transforms standard Markdown text into an RTL-aligned Markdown structure.
  * 
  * @param markdown - Raw Markdown string input.
- * @param options - Transformation options (digit conversion, wrapping, alignment).
  * @returns Transformed RTL Markdown string.
  */
-export function convertToRtlMarkdown(
-  markdown: string,
-  options: RtlConversionOptions
-): string {
+export function convertToRtlMarkdown(markdown: string): string {
   if (!markdown) return '';
 
-  let result = markdown;
-
-  // Step 1: Persianize digits and punctuation if enabled
-  if (options.persianizeDigits) {
-    result = persianize(result);
-  }
-
-  // Step 2: Ensure table columns are right-aligned if they lack explicit alignment
-  result = alignMarkdownTablesRtl(result);
-
-  // Step 3: Wrap with HTML container ONLY if explicitly requested in options
-  if (options.wrapRtlContainer) {
-    const isAlreadyWrapped = result.trim().startsWith('<div dir="rtl"');
-    if (!isAlreadyWrapped) {
-      result = `<div dir="rtl">\n\n${result}\n\n</div>`;
-    }
-  }
-
-  return result;
+  // Ensure table columns are right-aligned if they lack explicit alignment
+  return alignMarkdownTablesRtl(markdown);
 }
 
 /**
  * Ensures Markdown tables align text to the right by modifying header separator rows.
- * @param md - Raw markdown text
+ * Fenced code blocks are preserved intact without modifying their inner content.
+ * 
+ * @param {string} md - Raw markdown text.
+ * @returns {string} Processed markdown text with RTL-aligned tables.
  */
 function alignMarkdownTablesRtl(md: string): string {
+  // Quick character guard: skip line splitting and regex iterations if text contains no table delimiters
+  if (!md.includes('|')) {
+    return md;
+  }
+
   const lines = md.split('\n');
+  let inCodeBlock = false;
+
   const processedLines = lines.map((line) => {
+    // Check if toggling fenced code blocks (``` or ~~~)
+    if (/^\s*(```|~~~)/.test(line)) {
+      inCodeBlock = !inCodeBlock;
+      return line;
+    }
+
+    // Never modify lines inside code blocks
+    if (inCodeBlock) {
+      return line;
+    }
+
     // Check if line is a table header divider (e.g., |---|---| or | --- | --- |)
     if (/^\s*\|?(\s*:?-+:?\s*\|)+\s*$/.test(line)) {
       return line.replace(/:?-+:?/g, '---:'); // Force right-alignment for all columns
     }
     return line;
   });
+
   return processedLines.join('\n');
 }

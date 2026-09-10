@@ -1,51 +1,34 @@
 /**
  * @file utils/persianizer.ts
- * @description Helper functions to convert Western digits and punctuation to Persian format.
+ * @description Helper functions for Persian character detection.
  */
-
-const ENGLISH_DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-const PERSIAN_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-
-/** Western → Persian punctuation map. Parentheses/quotes are intentionally
- *  omitted: they are direction-sensitive and should stay LTR inside bidi runs. */
-const PERSIAN_PUNCTUATION: Record<string, string> = {
-  '?': '؟',
-  ',': '،',
-  ';': '؛',
-};
-
-/**
- * Converts Western digits (0-9) and common punctuation (?, , ;) to Persian
- * format while skipping inline and fenced code blocks.
- * @param input - The input string.
- * @returns String with Persian digits and punctuation.
- */
-export function persianize(input: string): string {
-  if (!input) return '';
-
-  // Split while preserving code block sections so they stay untouched
-  const parts = input.split(/(```[\s\S]*?```|`[^`]+`)/g);
-
-  return parts
-    .map((part) => {
-      if (part.startsWith('`')) {
-        return part; // Skip inline or multi-line code blocks
-      }
-      return part
-        .replace(/[0-9]/g, (digit) => {
-          const index = ENGLISH_DIGITS.indexOf(digit);
-          return index !== -1 ? PERSIAN_DIGITS[index] : digit;
-        })
-        .replace(/[?,;]/g, (p) => PERSIAN_PUNCTUATION[p] ?? p);
-    })
-    .join('');
-}
 
 /**
  * Checks if a character is a Persian/Arabic character.
  * @param char - Single character to test.
+ * @returns Boolean indicating whether the character belongs to the Persian/Arabic Unicode blocks.
  */
 export function isPersianChar(char: string): boolean {
+  if (!char) return false;
   const code = char.charCodeAt(0);
-  return (code >= 0x0600 && code <= 0x06ff) || (code >= 0xfb50 && code <= 0xfdff);
+  return (
+    (code >= 0x0600 && code <= 0x06ff) ||
+    (code >= 0x0750 && code <= 0x077f) ||
+    (code >= 0x08a0 && code <= 0x08ff) ||
+    (code >= 0xfb50 && code <= 0xfdff) ||
+    (code >= 0xfe70 && code <= 0xfeff) ||
+    code === 0x200c ||
+    code === 0x200d
+  );
 }
+
+/**
+ * Checks if a string contains any Persian/Arabic characters.
+ * @param text - Input string to check.
+ * @returns True if text contains any Persian/Arabic glyphs.
+ */
+export function hasPersianText(text: string): boolean {
+  if (!text) return false;
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\u200C\u200D]/.test(text);
+}
+
